@@ -17,9 +17,7 @@ internal class DatagramSocketImpl(
     selector: SelectorManager
 ) : BoundDatagramSocket, ConnectedDatagramSocket, NIOSocketImpl<DatagramChannel>(
     channel,
-    selector,
-    DefaultDatagramByteBufferPool
-) {
+    selector) {
     override val localAddress: SocketAddress
         get() {
             val localAddress = if (java7NetworkApisAvailable) {

@@ -20,6 +20,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import kotlin.coroutines.*
 
+@OptIn(ExperimentalStdlibApi::class)
 internal class Endpoint(
     private val host: String,
     private val port: Int,
@@ -89,15 +90,14 @@ internal class Endpoint(
         deliveryPoint.send(task)
     }
 
-    @OptIn(InternalAPI::class)
     private suspend fun makeDedicatedRequest(
         request: HttpRequestData,
         callContext: CoroutineContext
     ): HttpResponseData {
         try {
             val connection = connect(request)
-            val input = this@Endpoint.mapEngineExceptions(connection.input, request)
-            val originOutput = this@Endpoint.mapEngineExceptions(connection.output, request)
+            val input = connection.input
+            val originOutput = connection.output
 
             val output = originOutput.handleHalfClosed(
                 callContext,
@@ -107,10 +107,13 @@ internal class Endpoint(
             callContext[Job]!!.invokeOnCompletion { cause ->
                 val originCause = cause?.unwrapCancellationException()
                 try {
-                    input.cancel(originCause)
-                    originOutput.close(originCause)
-                    connection.socket.close()
-                    releaseConnection()
+                    if (originCause != null) {
+                        output.cancel(originCause)
+                    }
+                    GlobalScope.launch {
+                        originOutput.flushAndClose()
+                        releaseConnection()
+                    }
                 } catch (_: Throwable) {
                 }
             }
@@ -163,7 +166,7 @@ internal class Endpoint(
                 }
 
                 else -> {
-                    output.close()
+                    output.flushAndClose()
                     return@withContext response
                 }
             }

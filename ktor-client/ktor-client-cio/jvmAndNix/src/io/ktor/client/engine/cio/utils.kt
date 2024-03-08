@@ -16,7 +16,6 @@ import io.ktor.utils.io.*
 import io.ktor.utils.io.CancellationException
 import io.ktor.utils.io.core.*
 import io.ktor.utils.io.errors.*
-import io.ktor.utils.io.errors.EOFException
 import io.ktor.websocket.*
 import kotlinx.coroutines.*
 import kotlin.coroutines.*
@@ -92,7 +91,7 @@ internal suspend fun writeHeaders(
         output.flush()
     } catch (cause: Throwable) {
         if (closeChannel) {
-            output.close()
+            output.flushAndClose()
         }
         throw cause
     } finally {
@@ -108,7 +107,7 @@ internal suspend fun writeBody(
     closeChannel: Boolean = true
 ) {
     if (request.body is OutgoingContent.NoContent) {
-        if (closeChannel) output.close()
+        if (closeChannel) output.flushAndClose()
         return
     }
 
@@ -129,14 +128,15 @@ internal suspend fun writeBody(
             throw cause
         } finally {
             channel.flush()
-            chunkedJob?.channel?.close()
+            chunkedJob?.channel?.flushAndClose()
             chunkedJob?.join()
 
             output.closedCause?.unwrapCancellationException()?.takeIf { it !is CancellationException }?.let {
+                println("Throw $it")
                 throw it
             }
             if (closeChannel) {
-                output.close()
+                output.flushAndClose()
             }
         }
     }
@@ -158,7 +158,6 @@ private suspend fun processOutgoingContent(
     return true
 }
 
-@Suppress("DEPRECATION")
 @OptIn(InternalAPI::class)
 internal suspend fun readResponse(
     requestTime: GMTDate,
@@ -209,6 +208,7 @@ internal suspend fun readResponse(
     }
 }
 
+@OptIn(ExperimentalStdlibApi::class)
 internal suspend fun startTunnel(
     request: HttpRequestData,
     output: ByteWriteChannel,
