@@ -13,9 +13,10 @@ import java.util.*
  */
 internal class OverridingClassLoader(
     classpath: List<URL>,
+    watchClassExclusions: List<String>,
     parentClassLoader: ClassLoader?
 ) : ClassLoader(parentClassLoader), Closeable {
-    private val childClassLoader = ChildURLClassLoader(classpath.toTypedArray(), parent)
+    private val childClassLoader = ChildURLClassLoader(classpath.toTypedArray(), watchClassExclusions, parent)
 
     @Synchronized
     override fun loadClass(name: String, resolve: Boolean): Class<*> = try {
@@ -34,20 +35,27 @@ internal class OverridingClassLoader(
      * This class delegates (child then parent) for the findClass method for a URLClassLoader.
      * We need this because findClass is protected in URLClassLoader
      */
-    private class ChildURLClassLoader(urls: Array<URL>, private val realParent: ClassLoader) :
-        URLClassLoader(urls, null) {
+    private class ChildURLClassLoader(
+        urls: Array<URL>,
+        private val watchClassExclusions: List<String>,
+        private val realParent: ClassLoader)
+        : URLClassLoader(urls, null) {
         public override fun findClass(name: String): Class<*> {
             val loaded = super.findLoadedClass(name)
             if (loaded != null) {
                 return loaded
             }
 
-            try {
+            if (watchClassExclusions.any(name::contains)) {
+                return realParent.loadClass(name)
+            }
+
+            return try {
                 // first try to use the URLClassLoader findClass
-                return super.findClass(name)
+                super.findClass(name)
             } catch (e: ClassNotFoundException) {
                 // if that fails, we ask our real parent classloader to load the class (we give up)
-                return realParent.loadClass(name)
+                realParent.loadClass(name)
             }
         }
 

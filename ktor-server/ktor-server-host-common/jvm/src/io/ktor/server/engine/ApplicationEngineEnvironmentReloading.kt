@@ -36,6 +36,8 @@ public class ApplicationEngineEnvironmentReloading(
     override val connectors: List<EngineConnectorConfig>,
     internal val modules: List<Application.() -> Unit>,
     internal val watchPaths: List<String> = emptyList(),
+    internal val watchPathExclusions: List<String>,
+    internal val watchClassExclusions: List<String>,
     parentCoroutineContext: CoroutineContext = EmptyCoroutineContext,
     override val rootPath: String = "",
     override val developmentMode: Boolean = true
@@ -57,11 +59,13 @@ public class ApplicationEngineEnvironmentReloading(
         connectors: List<EngineConnectorConfig>,
         modules: List<Application.() -> Unit>,
         watchPaths: List<String> = emptyList(),
+        watchExclusions: List<String>,
+        watchClassExclusions: List<String>,
         parentCoroutineContext: CoroutineContext = EmptyCoroutineContext,
         rootPath: String = "",
     ) : this(
-        classLoader, log, config, connectors, modules, watchPaths,
-        parentCoroutineContext, rootPath, developmentMode = true
+        classLoader, log, config, connectors, modules, watchPaths, watchExclusions,
+        watchClassExclusions, parentCoroutineContext, rootPath, developmentMode = true
     )
 
     private var _applicationInstance: Application? = Application(this)
@@ -189,8 +193,9 @@ public class ApplicationEngineEnvironmentReloading(
         ).mapNotNullTo(HashSet()) { it.protectionDomain.codeSource.location }
 
         val watchUrls = allUrls.filter { url ->
-            url !in coreUrls && watchPatterns.any { pattern -> url.toString().contains(pattern) } &&
-                !(url.path ?: "").startsWith(jre)
+            url !in coreUrls && url.toString().let {
+                watchPatterns.any(it::contains) && watchPathExclusions.none(it::contains)
+            } && !(url.path ?: "").startsWith(jre)
         }
 
         if (watchUrls.isEmpty()) {
@@ -199,7 +204,7 @@ public class ApplicationEngineEnvironmentReloading(
         }
 
         watchUrls(watchUrls)
-        return OverridingClassLoader(watchUrls, baseClassLoader)
+        return OverridingClassLoader(watchUrls, watchClassExclusions, baseClassLoader)
     }
 
     private fun safeRiseEvent(event: EventDefinition<Application>, application: Application) {

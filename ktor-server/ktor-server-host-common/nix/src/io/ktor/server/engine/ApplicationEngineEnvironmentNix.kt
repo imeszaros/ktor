@@ -26,6 +26,16 @@ public actual class ApplicationEngineEnvironmentBuilder {
     public actual var watchPaths: List<String> = listOf(WORKING_DIRECTORY_PATH)
 
     /**
+     * Paths to ignore for application reload
+     */
+    public actual var watchPathExclusions: List<String> = emptyList()
+
+    /**
+     * Classes to skip auto-reloading
+     */
+    public actual var watchClassExclusions: List<String> = emptyList()
+
+    /**
      * Application logger
      */
     public actual var log: Logger = KtorSimpleLogger("Application")

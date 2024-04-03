@@ -40,7 +40,7 @@ class OverridingClassLoaderTest {
             URL(classLocationString.removeSuffix(expectedTestClassPath))
         }
 
-        val text = OverridingClassLoader(listOf(testClassesUrl), thisClassLoader).use {
+        val text = OverridingClassLoader(listOf(testClassesUrl), emptyList(), thisClassLoader).use {
             val childLoadedClassClazz = it.loadClass("io.ktor.server.engine.ChildLoadedClass")
             val expectedClassloaderPrefix = "io.ktor.server.engine.OverridingClassLoader\$ChildURLClassLoader"
             // Check it was loaded by the child class loader

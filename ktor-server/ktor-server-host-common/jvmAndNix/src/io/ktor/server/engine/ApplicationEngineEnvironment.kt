@@ -11,6 +11,7 @@ import io.ktor.util.logging.*
 import io.ktor.util.network.*
 import kotlinx.coroutines.*
 import kotlin.coroutines.*
+import kotlin.reflect.*
 
 /**
  * Represents an environment in which engine runs.
@@ -62,6 +63,16 @@ public expect class ApplicationEngineEnvironmentBuilder() {
      * Paths to wait for application reload
      */
     public var watchPaths: List<String>
+
+    /**
+     * Paths to ignore for application reload
+     */
+    public var watchPathExclusions: List<String>
+
+    /**
+     * Classes to skip auto-reloading
+     */
+    public var watchClassExclusions: List<String>
 
     /**
      * Application logger

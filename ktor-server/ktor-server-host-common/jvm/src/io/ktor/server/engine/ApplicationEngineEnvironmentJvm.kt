@@ -31,6 +31,16 @@ public actual class ApplicationEngineEnvironmentBuilder {
     public actual var watchPaths: List<String> = listOf(WORKING_DIRECTORY_PATH)
 
     /**
+     * Paths to ignore for application reload
+     */
+    public actual var watchPathExclusions: List<String> = emptyList()
+
+    /**
+     * Classes to skip auto-reloading
+     */
+    public actual var watchClassExclusions: List<String> = emptyList()
+
+    /**
      * Application logger
      */
     public actual var log: Logger = LoggerFactory.getLogger("Application")
@@ -73,7 +83,8 @@ public actual class ApplicationEngineEnvironmentBuilder {
     public actual fun build(builder: ApplicationEngineEnvironmentBuilder.() -> Unit): ApplicationEngineEnvironment {
         builder(this)
         return ApplicationEngineEnvironmentReloading(
-            classLoader, log, config, connectors, modules, watchPaths, parentCoroutineContext, rootPath, developmentMode
+            classLoader, log, config, connectors, modules, watchPaths,
+            watchPathExclusions, watchClassExclusions, parentCoroutineContext, rootPath, developmentMode
         )
     }
 }
